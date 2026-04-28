@@ -814,27 +814,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
+                    // 헤더 행 찾기 및 학생번호 열(studentNumCol) 동적 감지
                     let headerRowIdx = -1;
+                    let studentNumCol = 1; // 기본값 (기존 형식: B열)
                     for (let row = 0; row < Math.min(20, range.e.r + 1); row++) {
-                        let hasHeaderKeyword = false;
                         for (let col = 0; col <= range.e.c; col++) {
                             const cellRef = XLSX.utils.encode_cell({r: row, c: col});
                             const cell = firstSheet[cellRef];
                             if (cell && String(cell.v || '').includes('번호')) {
-                                hasHeaderKeyword = true;
+                                headerRowIdx = row;
+                                studentNumCol = col; // '번호' 헤더가 있는 열 = 학생번호 열
                                 break;
                             }
                         }
-                        if (hasHeaderKeyword) {
-                            headerRowIdx = row;
-                            break;
-                        }
+                        if (headerRowIdx !== -1) break;
                     }
-                    
+
                     if (headerRowIdx === -1) throw new Error('헤더 행을 찾을 수 없습니다.');
-                    
+
+                    // 반 번호 classMap: studentNumCol 다음 열부터 숫자인 것만 수집
                     const classMap = new Map();
-                    for (let col = 1; col <= range.e.c; col++) {
+                    for (let col = studentNumCol + 1; col <= range.e.c; col++) {
                         const cellRef = XLSX.utils.encode_cell({r: headerRowIdx, c: col});
                         const cell = firstSheet[cellRef];
                         const cellValue = cell && cell.v ? String(cell.v).trim() : '';
@@ -842,13 +842,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             classMap.set(parseInt(cellValue), col);
                         }
                     }
-                    
+
                     const students = [];
                     const dataStartRow = headerRowIdx + 1;
                     let dataEndRow = Math.min(dataStartRow + 35, range.e.r);
-                    
+
+                    // 종료 행 감지: studentNumCol 기준으로 '응시생수' 등 체크
                     for (let row = dataStartRow; row <= Math.min(dataStartRow + 40, range.e.r); row++) {
-                        const cellRef = XLSX.utils.encode_cell({r: row, c: 1});
+                        const cellRef = XLSX.utils.encode_cell({r: row, c: studentNumCol});
                         const cell = firstSheet[cellRef];
                         if (!cell) continue;
                         const cellValue = String(cell.v || '').trim();
@@ -857,9 +858,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             break;
                         }
                     }
-                    
+
+                    // 학생 데이터 파싱: studentNumCol 기준으로 학생번호 읽기
                     for (let row = dataStartRow; row <= dataEndRow; row++) {
-                        const studentNumCell = firstSheet[XLSX.utils.encode_cell({r: row, c: 1})];
+                        const studentNumCell = firstSheet[XLSX.utils.encode_cell({r: row, c: studentNumCol})];
                         if (!studentNumCell || !studentNumCell.v) break;
                         const studentNumStr = String(studentNumCell.v).trim();
                         
