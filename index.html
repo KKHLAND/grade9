@@ -92,6 +92,11 @@
         .data-table tbody tr:hover { background: #f8fafc; }
         .data-table tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.5); }
 
+        /* 검색 형광펜 효과 스타일 */
+        .data-table tbody tr.highlight-row { background-color: #fef08a !important; transition: all 0.2s; }
+        .data-table tbody tr.highlight-row td { color: #854d0e !important; font-weight: 700; }
+        .data-table tbody tr.highlight-row:hover { background-color: #fde047 !important; }
+
         .settings-card { background: white; border-radius: var(--radius-md); border: 1px solid var(--color-border); padding: 1rem; box-shadow: var(--shadow-sm); }
 
         input[type="range"] { -webkit-appearance: none; height: 6px; border-radius: 3px; background: #e2e8f0; outline: none; }
@@ -175,7 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 total: {...CONSTANTS.DEFAULT_ACHIEVEMENT_CUTOFFS} 
             }
         }, 
-        filters: { classes: [], grades: [] }, activeStatTab: 'midterm', allStudents: [], classList: [], analysisError: null, isProcessing: false, isReady: false, sortConfig: { key: 'ranks.midterm', direction: 'asc' } 
+        filters: { classes: [], grades: [] }, 
+        activeStatTab: 'midterm', allStudents: [], classList: [], analysisError: null, isProcessing: false, isReady: false, 
+        sortConfig: { key: 'ranks.midterm', direction: 'asc' },
+        searchQuery: '' // 검색어 상태 추가
     };
     
     const DOMElements = { sidebarContent: document.getElementById('sidebar-content'), dashboardContainer: document.getElementById('dashboard-container') };
@@ -292,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weightsHTML = `
             <div class="space-y-5">
                 <h3 class="font-bold text-slate-800 text-lg mt-8 mb-3 pt-8 border-t border-slate-100 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     평가 반영 비율
                 </h3>
                 <div class="settings-card space-y-5">
@@ -433,6 +441,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 학생 이름 검색 (DOM 직접 조작으로 부드러운 렌더링)
+    window.handleSearch = (query) => {
+        state.searchQuery = query.trim().toLowerCase();
+        const tableBody = document.querySelector('.data-table tbody');
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('tr[data-name]');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name');
+            if (!name) return;
+            
+            if (state.searchQuery === '' || name.toLowerCase().includes(state.searchQuery)) {
+                row.style.display = '';
+                visibleCount++;
+                if (state.searchQuery !== '') {
+                    row.classList.add('highlight-row');
+                } else {
+                    row.classList.remove('highlight-row');
+                }
+            } else {
+                row.style.display = 'none';
+                row.classList.remove('highlight-row');
+            }
+        });
+        
+        const countEl = document.getElementById('current-student-count');
+        if (countEl) countEl.textContent = visibleCount;
+    };
+
     function renderStudentDataTable(students, totalCount) {
         const { activeStatTab, sortConfig } = state;
         const cols = {
@@ -442,10 +481,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }[activeStatTab];
         
         const getVal = (o, p) => p.split('.').reduce((a, c) => (a||{})[c], o);
-        const headers = cols.map(c => `<th class="cursor-pointer hover:bg-slate-100" onclick="window.handleSort('${c.k}')">${c.l}</th>`).join('');
-        const rows = students.map(s => `<tr>${cols.map(c => { const v=getVal(s, c.k); const d=typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):(v??'—'); return `<td>${d}</td>`; }).join('')}</tr>`).join('');
         
-        return `<div class="data-table-wrapper bg-white"><div class="flex justify-between items-center p-5 border-b"><h3 class="font-bold">학생 데이터 (${students.length}/${totalCount})</h3><button onclick="window.exportToCSV()" class="btn-gradient-primary text-xs py-2 px-4">CSV 다운로드</button></div><div class="overflow-x-auto" style="max-height:600px"><table class="data-table"><thead><tr>${headers}</tr></thead><tbody>${students.length>0?rows:'<tr><td colspan="10" class="text-center py-8">데이터 없음</td></tr>'}</tbody></table></div></div>`;
+        const headers = cols.map(c => {
+            const isSortCol = state.sortConfig?.key === c.k;
+            const sortIcon = isSortCol ? (state.sortConfig.direction === 'asc' ? '↑' : '↓') : '';
+            return `<th class="cursor-pointer hover:bg-slate-100 transition-colors" onclick="window.handleSort('${c.k}')">${c.l} <span class="text-xs text-indigo-500">${sortIcon}</span></th>`;
+        }).join('');
+        
+        let initialVisibleCount = 0;
+        const rows = students.map(s => {
+            // 초기 렌더링 시 검색어 반영 및 클래스 추가
+            const isMatch = state.searchQuery && s.name.toLowerCase().includes(state.searchQuery.toLowerCase());
+            const isVisible = !state.searchQuery || isMatch;
+            if (isVisible) initialVisibleCount++;
+            
+            const displayStyle = isVisible ? '' : 'display: none;';
+            const highlightClass = isMatch ? 'highlight-row' : '';
+            
+            return `<tr class="${highlightClass}" style="${displayStyle}" data-name="${s.name}">${cols.map(c => { 
+                const v=getVal(s, c.k); 
+                const d=typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):(v??'—'); 
+                return `<td>${d}</td>`; 
+            }).join('')}</tr>`;
+        }).join('');
+        
+        return `<div class="data-table-wrapper bg-white">
+            <div class="flex flex-col sm:flex-row justify-between items-center p-5 border-b gap-4">
+                <h3 class="font-bold text-slate-800 flex-shrink-0">학생 데이터 (<span id="current-student-count">${initialVisibleCount}</span>/${totalCount})</h3>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="relative w-full sm:w-64">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="student-search-input" value="${state.searchQuery || ''}" oninput="window.handleSearch(this.value)" placeholder="이름으로 검색..." class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-9 p-2 outline-none transition-all focus:bg-white shadow-sm">
+                    </div>
+                    <button onclick="window.exportToCSV()" class="flex-shrink-0 btn-gradient-primary text-xs py-2 px-4 whitespace-nowrap">CSV 다운로드</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto" style="max-height:600px">
+                <table class="data-table">
+                    <thead><tr>${headers}</tr></thead>
+                    <tbody>${students.length>0?rows:'<tr><td colspan="10" class="text-center py-8 text-slate-500 font-medium">데이터 없음</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>`;
     }
 
     function setupDropzoneEventListeners() {
@@ -547,7 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function cleanScore(s) { let n=parseFloat(s); return isNaN(n)?null:n; }
     function calculateStats(st, k) { let sc=st.map(s=>s.scores[k]).filter(s=>s!=null), c=sc.length; if(!c)return{mean:0,stdDev:0,count:0}; let m=sc.reduce((a,b)=>a+b)/c, sd=Math.sqrt(sc.reduce((a,b)=>a+Math.pow(b-m,2),0)/c); return {mean:m,stdDev:sd,count:c}; }
 
-    // --- FULL EXCEL AND FILE HANDLING LOGIC RESTORED ---
     function getNextPerformanceNumber() {
         const existingNumbers = Object.keys(state.excelFiles)
             .filter(key => key.startsWith('performance'))
