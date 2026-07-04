@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         academicInfo: { year: new Date().getFullYear(), semester: 1, grade: 1, subject: '' }, 
         analysisSettings: { 
             weights: { midterm: 30, final: 30, performance: 40 }, 
-            performanceMaxScore: 100,
+            performanceMaxScore: 40,
             gradingSystem: 'relative', 
             achievementCutoffs: { 
                 midterm: {...CONSTANTS.DEFAULT_ACHIEVEMENT_CUTOFFS}, 
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="p-4 bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl shadow-sm">
                     <div class="flex justify-between items-center mb-1.5"><label class="font-bold text-base text-orange-800">수행평가 만점 기준</label><input type="number" min="1" max="1000" value="${s.performanceMaxScore}" onchange="window.handlePerformanceMaxScoreChange(this.value)" class="w-20 p-1.5 text-right bg-white border border-orange-200 rounded-lg text-base font-bold outline-none text-orange-800 shadow-sm"></div>
-                    <p class="text-sm text-orange-600/80">모든 차시 합산 만점을 입력하세요.</p>
+                    <p class="text-sm text-orange-600/80">모든 수행평가 합산 점수를 입력하세요.</p>
                 </div>
             </div>`;
 
@@ -655,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.handleLogoChange = (event) => { if(event.target.files[0]) { const r=new FileReader(); r.onload=e=>{state.logoSrc=e.target.result; render();}; r.readAsDataURL(event.target.files[0]); }};
     window.handleWeightChange = (exam, value) => { state.analysisSettings.weights[exam] = Math.max(0, Math.min(100, parseInt(value) || 0)); reAnalyzeData(); };
-    window.handlePerformanceMaxScoreChange = (value) => { state.analysisSettings.performanceMaxScore = Math.max(1, parseInt(value) || 100); reAnalyzeData(); };
+    window.handlePerformanceMaxScoreChange = (value) => { state.analysisSettings.performanceMaxScore = Math.max(1, parseInt(value) || 40); reAnalyzeData(); };
     window.handleSettingsChange = (key, value) => { state.analysisSettings[key] = value; if (key === 'gradingSystem') state.filters.grades = []; reAnalyzeData(); };
     window.handleCutoffChange = (level, score) => { if (level === 'E') return; state.analysisSettings.achievementCutoffs[state.activeStatTab][level] = parseFloat(score) || 0; reAnalyzeData(); };
     window.handleFilterChange = (type, value) => { const set = new Set(state.filters[type]); set.has(value) ? set.delete(value) : set.add(value); state.filters[type] = Array.from(set); render(); };
