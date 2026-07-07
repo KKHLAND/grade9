@@ -129,6 +129,12 @@
 
         .print-only { display: none; }
 
+        /* A4 세로 한 장 출력 규격 */
+        @page {
+            size: A4 portrait;
+            margin: 8mm 10mm;
+        }
+
         /* 인쇄 전용 스타일 */
         @media print {
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -154,8 +160,20 @@
 
             /* Tailwind Flex/Grid 인쇄 시 강제 유지 (브레이크포인트 무시) */
             .grid { display: grid !important; }
-            .gap-6 { gap: 1.5rem !important; }
-            .gap-8 { gap: 2rem !important; }
+            .gap-6 { gap: 0.6rem !important; }
+            .gap-8 { gap: 0.75rem !important; }
+
+            /* 세로 간격 압축 (A4 한 장 출력) */
+            .space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.6rem !important; }
+
+            /* 인쇄 전용 리포트 헤더 압축 */
+            .print-only { margin-bottom: 0 !important; }
+            .print-only h2 { font-size: 1.25rem !important; margin-bottom: 0.6rem !important; padding-bottom: 0.5rem !important; }
+            .print-only .mb-6 { margin-bottom: 0 !important; }
+            .print-only .gap-4 { gap: 0.5rem !important; }
+            .print-only .px-4 { padding: 0.3rem 0.75rem !important; }
+            .print-only .text-lg { font-size: 0.95rem !important; }
+            .print-only .text-sm { font-size: 0.75rem !important; }
             
             /* 3열 요약 카드 가로 배치 유지 */
             .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
@@ -165,11 +183,40 @@
             .xl\:col-span-2 { grid-column: span 2 / span 2 !important; }
             .xl\:col-span-3 { grid-column: span 3 / span 3 !important; }
 
-            /* 차트 컨테이너 높이 지정 */
+            /* 차트 컨테이너 높이 지정 (A4 한 장 기준 압축) */
             .chart-container { 
-                height: 380px !important; 
+                height: 220px !important; 
                 width: 100% !important; 
             }
+            #pie-chart-wrapper .chart-container { height: 150px !important; }
+            canvas { max-width: 100% !important; max-height: 100% !important; }
+
+            /* 요약 카드 축소 */
+            .stat-card { padding: 0.6rem 1rem !important; }
+            .stat-card h3 { font-size: 0.75rem !important; }
+            .stat-card p { font-size: 1.35rem !important; margin-top: 0.25rem !important; }
+
+            /* 차트 카드 내부 여백/제목 축소 (9등급 요약 목록 포함) */
+            #pie-chart-wrapper, #bar-chart-wrapper { padding: 0.8rem 1rem !important; }
+            #charts-print-area h3 { font-size: 0.9rem !important; margin-bottom: 0.4rem !important; }
+            #pie-chart-wrapper .mt-4 { margin-top: 0.3rem !important; padding-top: 0.3rem !important; overflow: visible !important; }
+            #pie-chart-wrapper .py-1\.5 { padding-top: 0.1rem !important; padding-bottom: 0.1rem !important; }
+            #pie-chart-wrapper .text-sm { font-size: 0.72rem !important; }
+
+            /* 탭 바 축소 */
+            .tab-nav { padding: 0.15rem !important; }
+            .tab-btn { padding: 0.35rem 0.9rem !important; font-size: 0.8rem !important; }
+            #dashboard-container .p-3 { padding: 0.4rem 0.75rem !important; }
+            #logo-preview { height: 2rem !important; }
+
+            /* 페이지 넘김 방지 */
+            html, body { height: auto !important; }
+            .print-only, .stat-card, #charts-print-area,
+            #pie-chart-wrapper, #bar-chart-wrapper {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            #charts-print-area { page-break-after: avoid !important; }
 
             /* 탭 메뉴 배경 및 활성화 상태 강제 출력 */
             .tab-nav { background: #f1f5f9 !important; border-radius: 0.75rem !important; }
@@ -249,6 +296,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const DOMElements = { sidebarContent: document.getElementById('sidebar-content'), dashboardContainer: document.getElementById('dashboard-container') };
     let pieChartInstance = null, barChartInstance = null;
+
+    // 인쇄 시 축소된 컨테이너에 맞게 차트 리사이즈 (A4 한 장 출력)
+    window.addEventListener('beforeprint', () => {
+        [pieChartInstance, barChartInstance].forEach(c => { if (c) c.resize(); });
+    });
+    window.addEventListener('afterprint', () => {
+        [pieChartInstance, barChartInstance].forEach(c => { if (c) c.resize(); });
+    });
 
     function render() { renderSidebar(); renderDashboard(); }
     
