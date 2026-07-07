@@ -131,7 +131,7 @@
 
         /* A4 세로 한 장 출력 규격 */
         @page {
-            size: A4 portrait;
+            size: A4 landscape;
             margin: 8mm 10mm;
         }
 
@@ -185,11 +185,24 @@
 
             /* 차트 컨테이너 높이 지정 (A4 한 장 기준 압축) */
             .chart-container { 
-                height: 220px !important; 
+                height: 260px !important; 
                 width: 100% !important; 
             }
-            #pie-chart-wrapper .chart-container { height: 150px !important; }
-            canvas { max-width: 100% !important; max-height: 100% !important; }
+            #pie-chart-wrapper .chart-container {
+                height: 165px !important;
+                display: flex !important;
+                justify-content: center !important;
+            }
+            /* 막대 차트: 컨테이너에 맞춰 축소 */
+            #barChart { max-width: 100% !important; max-height: 100% !important; }
+            /* 원 그래프: 정사각형 비율 강제 (찌그러짐 방지) */
+            #pieChart {
+                height: 100% !important;
+                width: auto !important;
+                aspect-ratio: 1 / 1 !important;
+                margin: 0 auto !important;
+                display: block !important;
+            }
 
             /* 요약 카드 축소 */
             .stat-card { padding: 0.6rem 1rem !important; }
