@@ -127,6 +127,8 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeInUp { animation: fadeInUp 0.4s ease-out; }
 
+        .print-only { display: none; }
+
         /* 인쇄 전용 스타일 */
         @media print {
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -136,6 +138,8 @@
             label[for="logo-upload"] input, .print-hidden, #logo-placeholder {
                 display: none !important;
             }
+
+            .print-only { display: block !important; }
 
             /* 전체 레이아웃 초기화 및 여백 제거 */
             #app, .flex-1, #dashboard-container {
@@ -354,7 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
 
-        // ★ 수정됨: range input 옆의 비율 텍스트를 number input으로 변경
         const weightsHTML = `
             <div class="space-y-5">
                 <h3 class="font-bold text-slate-800 text-lg mt-8 mb-3 pt-8 border-t border-slate-100 flex items-center gap-2">
@@ -439,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.analysisError) {
             dbContainer.innerHTML = `<div class="flex flex-col justify-center items-center h-full bg-red-50 rounded-xl p-6 text-center border border-red-100"><p class="text-2xl font-bold text-red-700">분석 중 오류가 발생했습니다</p><p class="text-lg text-red-600 mt-2">${state.analysisError}</p></div>`;
         } else if (state.isReady) {
-            const { allStudents, activeStatTab, logoSrc } = state; 
+            const { allStudents, activeStatTab, logoSrc, academicInfo } = state; 
             const stats = calculateStats(allStudents, activeStatTab);
 
             const tabsHTML = CONSTANTS.TABS_ORDER.map(tab => { 
@@ -501,9 +504,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
 
-            // ★ 수정됨: 인쇄 전용 레이아웃 래퍼 적용 (print-hidden 클래스 적절히 배치)
+            // ★ 수정됨: 인쇄 전용 헤더 추가 (학년도, 학기, 학년, 과목 정보 포함)
             dbContainer.innerHTML = `
             <div class="space-y-8 max-w-7xl mx-auto animate-fadeInUp">
+                
+                <!-- 인쇄 전용 헤더 -->
+                <div class="print-only mb-6">
+                    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6 pb-4 border-b-2 border-slate-200">성적 분석 대시보드 그래프 리포트</h2>
+                    <div class="flex justify-center gap-4 mb-6">
+                        <div class="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-lg"><span class="text-sm font-bold text-slate-500 mr-2">학년도</span><span class="text-lg font-bold text-indigo-700">${academicInfo.year}</span></div>
+                        <div class="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-lg"><span class="text-sm font-bold text-slate-500 mr-2">학기</span><span class="text-lg font-bold text-indigo-700">${academicInfo.semester}학기</span></div>
+                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg"><span class="text-sm font-bold text-slate-500 mr-2">학년</span><span class="text-lg font-bold text-slate-700">${academicInfo.grade}학년</span></div>
+                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg"><span class="text-sm font-bold text-slate-500 mr-2">과목</span><span class="text-lg font-bold text-slate-700">${academicInfo.subject || '미설정'}</span></div>
+                    </div>
+                </div>
+
                 <!-- 상단 탭 및 로고 (인쇄 표시) -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                     <nav class="tab-nav w-full sm:w-auto">${tabsHTML}</nav>
@@ -518,9 +533,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <!-- 차트 인쇄 헤더 영역 -->
-                <div class="flex justify-between items-end mt-4 mb-2">
+                <div class="flex justify-between items-end mt-4 mb-2 print-hidden">
                     <h3 class="text-lg font-bold text-slate-800">성적 분포 분석</h3>
-                    <button onclick="window.print()" class="print-hidden btn-gradient-primary !py-1.5 !px-3 !text-sm flex items-center gap-2 shadow-sm rounded-lg hover:shadow-md transition-all">
+                    <button onclick="window.print()" class="btn-gradient-primary !py-1.5 !px-3 !text-sm flex items-center gap-2 shadow-sm rounded-lg hover:shadow-md transition-all">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                         그래프 인쇄
                     </button>
