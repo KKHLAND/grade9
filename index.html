@@ -131,13 +131,13 @@
         @media print {
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             
-            /* 숨길 요소들 (헤더, 사이드바, 탭, 통계카드, 테이블, 기타 설정 영역) */
-            header, aside, .tab-nav, .stat-card, .data-table-wrapper, 
-            label[for="logo-upload"], .print-hidden, #logo-placeholder {
+            /* 숨길 요소들 (헤더, 사이드바, 데이터 테이블, 파일 업로드 숨김) */
+            .hero-header, aside#sidebar, .data-table-wrapper, 
+            label[for="logo-upload"] input, .print-hidden, #logo-placeholder {
                 display: none !important;
             }
 
-            /* 전체 레이아웃 초기화 (스크롤 제거 및 100% 너비 확보) */
+            /* 전체 레이아웃 초기화 및 여백 제거 */
             #app, .flex-1, #dashboard-container {
                 display: block !important;
                 height: auto !important;
@@ -148,42 +148,31 @@
                 background-color: white !important;
             }
 
-            /* 리포트 제목 추가 */
-            #dashboard-container::before {
-                content: "성적 분석 대시보드 그래프 리포트";
-                display: block;
-                text-align: center;
-                font-size: 24px;
-                font-weight: bold;
-                color: #0f172a;
-                margin-bottom: 2rem;
-                padding-top: 1rem;
-                border-bottom: 2px solid #e2e8f0;
-                padding-bottom: 1rem;
-            }
+            /* Tailwind Flex/Grid 인쇄 시 강제 유지 (브레이크포인트 무시) */
+            .grid { display: grid !important; }
+            .gap-6 { gap: 1.5rem !important; }
+            .gap-8 { gap: 2rem !important; }
+            
+            /* 3열 요약 카드 가로 배치 유지 */
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+            
+            /* 5열 차트 레이아웃 가로 배치 유지 (파이:2, 막대:3) */
+            .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+            .xl\:col-span-2 { grid-column: span 2 / span 2 !important; }
+            .xl\:col-span-3 { grid-column: span 3 / span 3 !important; }
 
-            /* 차트 컨테이너 레이아웃 (세로 정렬) */
-            #charts-print-area {
-                display: block !important; /* Grid 해제 */
-                width: 100% !important;
-            }
-
-            #charts-print-area > div {
-                display: block !important;
-                width: 100% !important;
-                margin-bottom: 2rem !important;
-                padding: 1.5rem !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: none !important;
-                border-radius: 0.5rem !important;
-                page-break-inside: avoid; /* 요소 중간에서 페이지 나뉨 방지 */
-            }
-
-            /* 인쇄 시 캔버스 높이 조절 */
+            /* 차트 컨테이너 높이 지정 */
             .chart-container { 
-                height: 350px !important; 
+                height: 380px !important; 
                 width: 100% !important; 
             }
+
+            /* 탭 메뉴 배경 및 활성화 상태 강제 출력 */
+            .tab-nav { background: #f1f5f9 !important; border-radius: 0.75rem !important; }
+            .tab-btn.active { background: var(--primary-gradient) !important; color: white !important; }
+            
+            /* 카드 스타일 정리 */
+            .card-subtle { border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
         }
     </style>
 </head>
@@ -512,14 +501,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }).join('');
 
-            // ★ 수정됨: 인쇄 버튼 추가 및 차트 영역을 감싸는 id="charts-print-area" 부여
+            // ★ 수정됨: 인쇄 전용 레이아웃 래퍼 적용 (print-hidden 클래스 적절히 배치)
             dbContainer.innerHTML = `
             <div class="space-y-8 max-w-7xl mx-auto animate-fadeInUp">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm print-hidden">
+                <!-- 상단 탭 및 로고 (인쇄 표시) -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                     <nav class="tab-nav w-full sm:w-auto">${tabsHTML}</nav>
                     <div class="flex-shrink-0 pr-2">${logoUploaderHTML}</div>
                 </div>
                 
+                <!-- 요약 카드 (인쇄 표시) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="stat-card stat-card-blue"><div class="stat-bg-circle"></div><h3 class="font-bold text-blue-100 text-base relative z-10">평균 점수</h3><p class="text-4xl font-extrabold mt-3 text-white relative z-10">${stats.mean.toFixed(2)}</p></div>
                     <div class="stat-card stat-card-purple"><div class="stat-bg-circle"></div><h3 class="font-bold text-purple-100 text-base relative z-10">표준편차</h3><p class="text-4xl font-extrabold mt-3 text-white relative z-10">${stats.stdDev.toFixed(2)}</p></div>
@@ -527,9 +518,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <!-- 차트 인쇄 헤더 영역 -->
-                <div class="flex justify-between items-end mt-4 mb-2 print-hidden">
+                <div class="flex justify-between items-end mt-4 mb-2">
                     <h3 class="text-lg font-bold text-slate-800">성적 분포 분석</h3>
-                    <button onclick="window.print()" class="btn-gradient-primary !py-1.5 !px-3 !text-sm flex items-center gap-2 shadow-sm rounded-lg hover:shadow-md transition-all">
+                    <button onclick="window.print()" class="print-hidden btn-gradient-primary !py-1.5 !px-3 !text-sm flex items-center gap-2 shadow-sm rounded-lg hover:shadow-md transition-all">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                         그래프 인쇄
                     </button>
