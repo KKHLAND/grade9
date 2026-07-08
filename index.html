@@ -162,7 +162,7 @@
             /* ── 핵심: 대시보드 전체를 균등 축소(zoom)해 A4 가로 한 장에 맞춤 ──
                내용을 자르지 않고 통째로 줄이는 방식이므로
                카드 잘림, 등급 목록 잘림, 원 그래프 왜곡이 모두 발생하지 않음 */
-            #dashboard-container { zoom: 0.60; }
+            #dashboard-container { zoom: 0.55; }
 
             /* Tailwind Flex/Grid 인쇄 시 강제 유지 (브레이크포인트 무시) */
             .grid { display: grid !important; }
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for(let [cNum, cIdx] of cMap.entries()) {
                     if(r[cIdx]) {
                         const cName = `${state.academicInfo.grade}${String(cNum).padStart(2,'0')}`; cls.add(cName);
-                        const findS = (d) => { if(!d[0])return null; let i=d[0].findIndex(x=>x.trim()===cNum); return i!==-1&&d[ri+1]?cleanScore(d[ri+1][i]):null; };
+                        const findS = (d) => { if(!d[0])return null; let i=d[0].findIndex(x=>x.trim()===cNum); if(i===-1)return null; const num=parseInt(r[0]); const row=d.slice(1).find(dr=>parseInt(dr[0])===num); return row?cleanScore(row[i]):null; }; // 행 위치가 아닌 학생 번호로 매칭 (누락 번호가 있어도 밀리지 않음)
                         raw.push({ studentId: `${cName}${String(r[0]).padStart(2,'0')}`, name: r[cIdx].trim(), class: cName, number: r[0], midtermScore: findS(mCSV), finalScore: findS(fCSV), performanceScore: findS(pCSV) });
                     }
                 }
@@ -1190,6 +1190,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                         students.push(studentData);
+                    }
+
+                    // ── 누락 번호 자동 채우기 ──
+                    // NEIS 선택과목 일람표는 전 학급에 없는 번호의 행이 아예 빠져서 내려오므로,
+                    // 1번부터 마지막 번호까지 비는 번호를 빈 점수 행으로 자동 생성한다.
+                    // (사용자가 엑셀에 행 삽입할 필요 없음)
+                    if (students.length > 0) {
+                        const existingNums = new Set(students.map(s => s.number));
+                        const maxNum = Math.max(...existingNums);
+                        for (let n = 1; n <= maxNum; n++) {
+                            if (!existingNums.has(n)) {
+                                students.push({ number: n, scores: {} });
+                            }
+                        }
+                        students.sort((a, b) => a.number - b.number);
                     }
                     
                     const sortedClasses = Array.from(classMap.keys()).sort((a, b) => a - b);
