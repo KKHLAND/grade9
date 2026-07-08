@@ -162,7 +162,7 @@
             /* ── 핵심: 대시보드 전체를 균등 축소(zoom)해 A4 가로 한 장에 맞춤 ──
                내용을 자르지 않고 통째로 줄이는 방식이므로
                카드 잘림, 등급 목록 잘림, 원 그래프 왜곡이 모두 발생하지 않음 */
-            #dashboard-container { zoom: 0.55; }
+            #dashboard-container { zoom: 0.6; }
 
             /* Tailwind Flex/Grid 인쇄 시 강제 유지 (브레이크포인트 무시) */
             .grid { display: grid !important; }
@@ -199,8 +199,11 @@
             .tab-nav { background: #f1f5f9 !important; border-radius: 0.75rem !important; }
             .tab-btn.active { background: var(--primary-gradient) !important; color: white !important; }
             
+            /* 그림자 전면 제거 (인쇄물 중간의 회색 띠/선 방지) */
+            * { box-shadow: none !important; text-shadow: none !important; }
+
             /* 카드 스타일 정리 */
-            .card-subtle { border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
+            .card-subtle, .card-elevated { border: 1px solid #e2e8f0 !important; }
         }
     </style>
 </head>
