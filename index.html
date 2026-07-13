@@ -405,13 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="flex justify-between items-center mb-1.5">
                             <label class="font-bold text-base text-slate-600">${{midterm:"중간고사",final:"기말고사",performance:"수행평가"}[k]}</label>
                             <div class="flex items-center">
-                                <input type="number" min="0" max="100" value="${s.weights[k]}" onchange="window.handleWeightChange('${k}', this.value)" class="hide-arrows w-12 text-right bg-transparent border-b border-dashed border-indigo-300 focus:border-solid focus:border-indigo-600 outline-none text-base font-extrabold text-indigo-600 p-0 transition-colors">
+                                <input type="number" min="0" max="100" step="0.1" value="${s.weights[k]}" onchange="window.handleWeightChange('${k}', this.value)" class="hide-arrows w-14 text-right bg-transparent border-b border-dashed border-indigo-300 focus:border-solid focus:border-indigo-600 outline-none text-base font-extrabold text-indigo-600 p-0 transition-colors">
                                 <span class="text-base font-extrabold text-indigo-600 ml-0.5">%</span>
                             </div>
                         </div>
-                        <input type="range" min="0" max="100" value="${s.weights[k]}" oninput="window.handleWeightChange('${k}',this.value)" class="w-full cursor-pointer">
+                        <input type="range" min="0" max="100" step="0.1" value="${s.weights[k]}" oninput="window.handleWeightChange('${k}',this.value)" class="w-full cursor-pointer">
                     </div>`).join('')}
-                    ${totalWeight!==100 ? `<div class="flex items-center gap-2 p-2.5 rounded-lg ${totalWeight>100?'bg-red-50 text-red-600 border border-red-200':'bg-amber-50 text-amber-600 border border-amber-200'} text-base font-bold mt-2">${totalWeight}% (100% 필요)</div>` : ''}
+                    ${Math.abs(totalWeight-100)>=0.05 ? `<div class="flex items-center gap-2 p-2.5 rounded-lg ${totalWeight>100?'bg-red-50 text-red-600 border border-red-200':'bg-amber-50 text-amber-600 border border-amber-200'} text-base font-bold mt-2">${Number(totalWeight.toFixed(1))}% (100% 필요)</div>` : ''}
                 </div>
                 <div class="p-4 bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl shadow-sm">
                     <div class="flex justify-between items-center mb-1.5"><label class="font-bold text-base text-orange-800">수행평가 만점 기준</label><input type="number" min="1" max="1000" value="${s.performanceMaxScore}" onchange="window.handlePerformanceMaxScoreChange(this.value)" class="w-20 p-1.5 text-right bg-white border border-orange-200 rounded-lg text-base font-bold outline-none text-orange-800 shadow-sm hide-arrows"></div>
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (tab === 'final') isEnabled = state.files.final;
                 else if (tab === 'total') {
                     const wts = state.analysisSettings.weights;
-                    isEnabled = (wts.midterm||0)+(wts.final||0)+(wts.performance||0) === 100 && allStudents.some(s => s.scores.total !== null);
+                    isEnabled = Math.abs((wts.midterm||0)+(wts.final||0)+(wts.performance||0) - 100) < 0.05 && allStudents.some(s => s.scores.total !== null);
                 } 
                 return `<button onclick="window.handleTabChange('${tab}')" class="tab-btn ${activeStatTab===tab && isEnabled ? 'active' : ''} ${!isEnabled ? '!cursor-not-allowed !opacity-40' : ''}" ${!isEnabled ? 'disabled' : ''}>${CONSTANTS.TABS[tab]}</button>`; 
             }).join('');
@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     window.handleLogoChange = (event) => { if(event.target.files[0]) { const r=new FileReader(); r.onload=e=>{state.logoSrc=e.target.result; render();}; r.readAsDataURL(event.target.files[0]); }};
-    window.handleWeightChange = (exam, value) => { state.analysisSettings.weights[exam] = Math.max(0, Math.min(100, parseInt(value) || 0)); reAnalyzeData(); };
+    window.handleWeightChange = (exam, value) => { const v = parseFloat(value); state.analysisSettings.weights[exam] = Math.max(0, Math.min(100, isNaN(v) ? 0 : Math.round(v * 10) / 10)); reAnalyzeData(); };
     window.handlePerformanceMaxScoreChange = (value) => { state.analysisSettings.performanceMaxScore = Math.max(1, parseInt(value) || 40); reAnalyzeData(); };
     window.handleSettingsChange = (key, value) => { state.analysisSettings[key] = value; if (key === 'gradingSystem') state.filters.grades = []; reAnalyzeData(); };
     window.handleCutoffChange = (level, score) => { if (level === 'E') return; state.analysisSettings.achievementCutoffs[state.activeStatTab][level] = parseFloat(score) || 0; reAnalyzeData(); };
@@ -819,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             const analyzed = analyzeData(raw, state.analysisSettings);
-            let tabs = []; if(texts.midterm) tabs.push('midterm'); if(texts.final) tabs.push('final'); if((state.analysisSettings.weights.midterm+state.analysisSettings.weights.final+state.analysisSettings.weights.performance)===100 && analyzed.some(s=>s.scores.total!==null)) tabs.push('total');
+            let tabs = []; if(texts.midterm) tabs.push('midterm'); if(texts.final) tabs.push('final'); if(Math.abs((state.analysisSettings.weights.midterm+state.analysisSettings.weights.final+state.analysisSettings.weights.performance)-100)<0.05 && analyzed.some(s=>s.scores.total!==null)) tabs.push('total');
             if(tabs.length>0 && !tabs.includes(state.activeStatTab)) state.activeStatTab = tabs[0];
             Object.assign(state,{allStudents:analyzed, classList:Array.from(cls).sort(), isReady:true});
         } catch(e){ state.analysisError = e.message; } finally { state.isProcessing = false; render(); }
